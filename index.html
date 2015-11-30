@@ -10,65 +10,7 @@
 	<link href="css/bootstrap.min.css" rel="stylesheet"/>
 	<link href="css/bootstrap-theme.min.css" rel="stylesheet"/>
 	<link href="http://cdn.leafletjs.com/leaflet/v0.7.7/leaflet.css" rel="stylesheet"/>
-	<style>
-		#map {
-			height: 100%;
-			min-height: 100%;
-			margin: 0;
-			padding: 0;
-			width: 100%;
-			position: fixed;
-			top: 0;
-			left: 0;
-			z-index: -1;
-			background-color: #151515;
-		}
-		.navbar-fixed-top {
-			top: 16px;
-		}
-		.navbar-fixed-top .container {
-			margin-top: 0;
-		}
-		body .container {
-			margin-top: 16px;
-		}
-		.leaflet-top .leaflet-control {
-			margin-top: 128px;
-		}
-		ul.scroll-menu {
-			position: relative;
-			display: inherit !important;
-			overflow-x: auto;
-			-webkit-overflow-scrolling: touch;
-			-moz-overflow-scrolling: touch;
-			-ms-overflow-scrolling: touch;
-			-o-overflow-scrolling: touch;
-			overflow-scrolling: touch;
-			top: 0 !important;
-			left: 0 !important;
-			width: 100%;
-			height: auto;
-			max-height: 500px;
-			margin: 0;
-			border-left: none;
-			border-right: none;
-			-webkit-border-radius: 0 !important;
-			-moz-border-radius: 0 !important;
-			-ms-border-radius: 0 !important;
-			-o-border-radius: 0 !important;
-			border-radius: 0 !important;
-			-webkit-box-shadow: none;
-			-moz-box-shadow: none;
-			-ms-box-shadow: none;
-			-o-box-shadow: none;
-			box-shadow: none;
-		}
-		.vmarker {
-			background: rgba(255, 255, 255, 0.25);
-			box-shadow: 0px 0px 4px 2px rgba(255, 255, 255, 0.25);
-			border-radius: 4px;
-		}
-	</style>
+	<link href="css/map.css" rel="stylesheet"/>
 </head>
 <body role="document">
 	<nav class="navbar navbar-inverse navbar-fixed-top">
@@ -80,14 +22,14 @@
 					<span class="icon-bar"></span>
 					<span class="icon-bar"></span>
 				</button>
-				<a class="navbar-brand" href="#">RBIDS</a>
+				<a class="navbar-brand">RBIDS</a>
 			</div>
 			<div class="navbar-collapse collapse" id="navbar">
 				<ul class="nav navbar-nav">
 					<li class="dropdown">
 						<a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false">Machine Type <span class="caret"/></a>
 						<ul class="dropdown-menu">
-							<li id="allMachines" class="active"><a href="#">All Machines <span class="badge" id="allMachinesCount">?</span></a></li>
+							<li class="active"><a id="f-all">All Machines <span class="badge">?</span></a></li>
 							<li>
 								<ul class="dropdown-menu scroll-menu" id="typeDropdown"></ul>
 							</li>
@@ -163,7 +105,34 @@
 		$.getJSON("vtypes.json", function(vtypes) {
 			$.getJSON("vinsts.json", function(vinsts) {
 				var markerGroups = {};
-				$("#allMachinesCount").text($(vinsts).size());
+				
+				var selectType = function(btn, hash) {
+					// update selections
+					$(".dropdown-menu>li").removeClass("active");
+					if(btn) {
+						$(btn).parent().addClass("active");
+					}
+					
+					// push url state
+					if(hash == null)
+						hash = btn;
+					if(hash != window.location.hash) {
+						window.history.pushState(hash, hash, window.location.pathname + hash);
+					}
+					
+					// update markers
+					map.eachLayer(function(layer) {
+						if(layer !== mapImg)
+							map.removeLayer(layer);
+					});
+					if(btn == "#f-all") {
+						$.each(markerGroups, function(type, layer) {
+							map.addLayer(layer);
+						});
+					} else {
+						map.addLayer(markerGroups[btn.replace("#f-","")]);
+					}
+				}
 				
 				$.each(vtypes, function(type, name) {
 					var shortType = type.replace(tPrefix, "");
@@ -172,7 +141,10 @@
 					});
 					var numInsts = $(instances).length;
 					if(numInsts > 0) {
-						$("#typeDropdown").append('<li id="type-'+shortType+'"><a href="#">'+name+' <span class="badge">'+numInsts+'</span></a></li>');
+						$("#typeDropdown").append('<li><a id="f-'+shortType+'">'+name+' <span class="badge">'+numInsts+'</span></a></li>');
+						$("#f-"+shortType).on("click", function() {
+							selectType("#"+this.id);
+						});
 						
 						// each type has its own layer group to simplify toggling
 						var group = L.layerGroup();
@@ -183,37 +155,32 @@
 								icon: L.icon({iconUrl: "img/"+shortType+".png", iconSize: [32,32], className: "vmarker"})
 							}));
 						});
-						group.addTo(map);
 						markerGroups[shortType] = group;
 					}
 				});
 				
-				var selectType = function(vtype) {
-					// update selections
-					$("#allMachines").toggleClass("active", vtype == null);
-					$("#typeDropdown li").each(function() {
-						$(this).toggleClass("active", $(this).is("#type-"+(vtype?vtype:"")));
-					});						
-					
-					// update markers
-					map.eachLayer(function(layer) {
-						if(layer !== mapImg)
-							map.removeLayer(layer);
-					});
-					if(vtype) {
-						map.addLayer(markerGroups[vtype]);
+				$("#f-all>.badge").text($(vinsts).size());
+				
+				$("#f-all").on("click", function() {
+					selectType("#f-all", "");
+				});
+				
+				///////////////
+				// filter as requested
+				var setFilter = function(hash) {
+					if(hash != null && hash.length > 3) {
+						if(hash.substr(0, 3) == "#f-") {
+							$(hash).triggerHandler("click");
+						}
 					} else {
-						$.each(markerGroups, function(type, layer) {
-							map.addLayer(layer);
-						});
+						selectType("#f-all", "");
 					}
 				}
-				
-				$("#allMachines").on("click", function() {
-					selectType(null);
-				});
-				$("#typeDropdown").on("click", "li", function() {
-					selectType(this.id.replace("type-", ""));
+				// load from url initially
+				setFilter(window.location.hash);
+				// and also from pops
+				$(window).bind("popstate", function(event) {
+					setFilter(event.originalEvent.state);
 				});
 			})
 		});
