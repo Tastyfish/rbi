@@ -6,10 +6,10 @@
 	<meta http-equiv="X-UA-Compatible" content="IE=edge"/>
 	<meta name="viewport" content="width=device-width, initial-scale=1"/>
 	<title>Rampant Brand Intelligence Dispatching System</title>
-	<link rel="icon" type="image/png" href="img/favicon.png"/>
+	<link rel="icon" type="image/png" href="images/favicon.png"/>
 	<link href="css/bootstrap.min.css" rel="stylesheet"/>
 	<link href="css/bootstrap-theme.min.css" rel="stylesheet"/>
-	<link href="http://cdn.leafletjs.com/leaflet/v0.7.7/leaflet.css" rel="stylesheet"/>
+	<link href="css/leaflet.css" rel="stylesheet"/>
 	<link href="css/map.css" rel="stylesheet"/>
 </head>
 <body role="document">
@@ -46,7 +46,7 @@
 	<div class="container" role="main">
 		<div class="jumbotron collapse in" id="welcome">
 			<h1>Hihi.</h1>
-			<h2><img alt="hihi" src="img/hihi.png"/>This is for use on destroying pesky competition.</h2>
+			<h2><img alt="hihi" src="images/hihi.png"/>This is for use on destroying pesky competition.</h2>
 			<p>
 				Choose machine type at top, navigate like map.
 				Is uses <a href="http://jquery.com">JQuery</a> and <a href="http://leafletjs.com">Leaflet</a>.
@@ -57,7 +57,7 @@
 	
 	<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
 	<script src="js/bootstrap.min.js"></script>
-	<script src="http://cdn.leafletjs.com/leaflet/v0.7.7/leaflet.js"></script>
+	<script src="js/leaflet.js"></script>
 	<script src="js/js.cookie-2.0.4.min.js"></script>
 	<script>
 		// google analytics
@@ -91,15 +91,17 @@
 			zoomControl: false,
 			attributionControl: false,
 			minZoom: 2,
-			maxZoom: 4,
+			maxZoom: 5,
 			maxBounds: [[0,0],[256,256]],
 			crs: L.CRS.Simple
 		}).setView([128, 128], 2);
 		L.control.zoom({position: "topleft"}).addTo(map);
-		var mapImg = L.imageOverlay(
-			"img/nanomap_z1.png",
-			[[0,0],[256,256]]
-		).addTo(map);
+		var mapImg = L.tileLayer("tiles/{z}/{x}/{y}.png", {
+			minZoom: 2,
+			maxZoom: 5,
+			continuousWorld: true,
+			tms: true
+		}).addTo(map);
 		
 		// initialize machine lists
 		$.getJSON("vtypes.json", function(vtypes) {
@@ -149,10 +151,10 @@
 						// each type has its own layer group to simplify toggling
 						var group = L.layerGroup();
 						$.each(instances, function(i, inst) {
-							group.addLayer(L.marker([inst.loc[1]-.75,inst.loc[0]-.75], {
+							group.addLayer(L.marker([inst.loc[1]-.5,inst.loc[0]-.5], {
 								title: vtypes[tPrefix+shortType],
 								riseOnHover: true,
-								icon: L.icon({iconUrl: "img/"+shortType+".png", iconSize: [32,32], className: "vmarker"})
+								icon: L.icon({iconUrl: "images/"+shortType+".png", iconSize: [32,32], className: "vmarker"})
 							}));
 						});
 						markerGroups[shortType] = group;
